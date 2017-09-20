@@ -6,7 +6,6 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
-import android.view.VelocityTracker;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.widget.FrameLayout;
@@ -21,7 +20,6 @@ public class SwipeMenu extends FrameLayout {
     private View mMenu;
 
     private Scroller mScroller;
-    private VelocityTracker mVelocityTracker;
 
     private int mSwipeMenuWidth;
     private int mContentWidth;
@@ -33,7 +31,7 @@ public class SwipeMenu extends FrameLayout {
     private int mLastInterceptX;
     private int mLastInterceptY;
     //最小滑动距离
-    private int mMinimumVelocity;
+    private int mTouchSlop;
 
     public SwipeMenu(@NonNull Context context) {
         super(context);
@@ -52,9 +50,8 @@ public class SwipeMenu extends FrameLayout {
 
     private void init(){
         mScroller = new Scroller(getContext());
-        mVelocityTracker = VelocityTracker.obtain();
         final ViewConfiguration configuration = ViewConfiguration.get(getContext());
-        mMinimumVelocity = configuration.getScaledMinimumFlingVelocity();
+        mTouchSlop = configuration.getScaledTouchSlop();
     }
 
     @Override
@@ -133,7 +130,6 @@ public class SwipeMenu extends FrameLayout {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        mVelocityTracker.addMovement(event);
         int x = (int) event.getX();
         int y = (int) event.getY();
         switch (event.getAction()){
@@ -145,7 +141,6 @@ public class SwipeMenu extends FrameLayout {
             case MotionEvent.ACTION_MOVE:
                 int deltaX = x - mLastX;
                 int deltaY = y - mLastY;
-                mVelocityTracker.computeCurrentVelocity(1000);
 
                 int scrollerX = getScrollX() - deltaX;
                 //边界检测，如果向右滑动则scrollerX不动，如果左滑则不能超过菜单距离
@@ -156,9 +151,8 @@ public class SwipeMenu extends FrameLayout {
                 }
                 scrollTo(scrollerX,getScrollY());
 
-                int xVelocity = (int) mVelocityTracker.getXVelocity();
                 //当x方向滑动大于y方向滑动，且x方向滑动大于最小滑动距离则说明这个控件要滑动了，告诉父控件不要把事件拦截了
-                if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(xVelocity) > Math.abs(mMinimumVelocity)){
+                if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > Math.abs(mTouchSlop)){
                     getParent().requestDisallowInterceptTouchEvent(true);
                 }
                 break;
@@ -170,10 +164,8 @@ public class SwipeMenu extends FrameLayout {
                 }else{
                     openSwipeMenu();
                 }
-                mVelocityTracker.clear();
                 break;
             case MotionEvent.ACTION_CANCEL:
-                mVelocityTracker.clear();
                 break;
             default:
                 break;
